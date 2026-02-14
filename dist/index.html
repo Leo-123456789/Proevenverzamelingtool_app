@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proevenverzamelingtool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.5;
+            color: #111827;
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        // Simple React-like state management
+        const app = {
+            state: {
+                fileName: null,
+                headers: [],
+                data: [],
+                isLoading: false,
+                error: null,
+                showAlert: false,
+                alertMessage: '',
+                alertType: 'info'
+            },
+            
+            setState(newState) {
+                this.state = { ...this.state, ...newState };
+                this.render();
+            },
+            
+            loadDummyData() {
+                this.setState({
+                    fileName: 'sample_data.xlsx',
+                    headers: ['Voornaam', 'Achternaam', 'Leeftijd', 'E-mail', 'Bedrijf'],
+                    data: [
+                        ['Jan', 'Jansen', '28', 'jan.jansen@example.com', 'Tech Corp'],
+                        ['Maria', 'García', '34', 'maria.garcia@example.com', 'Design Studio'],
+                        ['Peter', 'Müller', '45', 'peter.muller@example.com', 'Finance Group'],
+                        ['Sarah', 'Johnson', '29', 'sarah.johnson@example.com', 'Marketing Plus'],
+                        ['Ahmed', 'Hassan', '31', 'ahmed.hassan@example.com', 'Data Systems'],
+                        ['Emma', 'Thompson', '26', 'emma.thompson@example.com', 'Creative Minds'],
+                        ['Rafael', 'Santos', '38', 'rafael.santos@example.com', 'Export Solutions'],
+                        ['Lisa', 'Anderson', '42', 'lisa.anderson@example.com', 'Global Trade'],
+                    ],
+                    alertMessage: 'Sample data loaded successfully',
+                    alertType: 'success',
+                    showAlert: true
+                });
+                setTimeout(() => this.setState({ showAlert: false }), 3000);
+            },
+            
+            handleFileSelect(event) {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    this.setState({
+                        error: 'File is too large (max 5MB)',
+                        alertMessage: 'File is too large (max 5MB)',
+                        alertType: 'error',
+                        showAlert: true
+                    });
+                    return;
+                }
+                
+                const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+                const validExtensions = ['.xlsx', '.xls', '.csv'];
+                
+                const isValidType = validTypes.includes(file.type);
+                const isValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+                
+                if (!isValidType && !isValidExtension) {
+                    this.setState({
+                        error: 'Please upload a valid Excel file (.xlsx, .xls) or CSV',
+                        alertMessage: 'Please upload a valid Excel file (.xlsx, .xls) or CSV',
+                        alertType: 'error',
+                        showAlert: true
+                    });
+                    event.target.value = '';
+                    return;
+                }
+                
+                this.setState({ isLoading: true });
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js';
+                        script.onload = () => {
+                            const data = XLSX.read(e.target.result, { type: 'array' });
+                            const firstSheet = data.Sheets[data.SheetNames[0]];
+                            const parsed = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                            
+                            if (parsed.length === 0) {
+                                this.setState({
+                                    isLoading: false,
+                                    error: 'Excel file is empty',
+                                    alertMessage: 'Excel file is empty',
+                                    alertType: 'error',
+                                    showAlert: true
+                                });
+                                return;
+                            }
+                            
+                            const headers = parsed[0] || [];
+                            const rows = parsed.slice(1);
+                            
+                            this.setState({
+                                fileName: file.name,
+                                headers: headers,
+                                data: rows,
+                                isLoading: false,
+                                error: null,
+                                alertMessage: 'File successfully uploaded',
+                                alertType: 'success',
+                                showAlert: true
+                            });
+                            
+                            setTimeout(() => this.setState({ showAlert: false }), 3000);
+                            event.target.value = '';
+                        };
+                        document.head.appendChild(script);
+                    } catch (err) {
+                        this.setState({
+                            isLoading: false,
+                            error: 'Failed to parse file: ' + err.message,
+                            alertMessage: 'Failed to parse file',
+                            alertType: 'error',
+                            showAlert: true
+                        });
+                    }
+                };
+                reader.onerror = () => {
+                    this.setState({
+                        isLoading: false,
+                        error: 'Failed to read file',
+                        alertMessage: 'Failed to read file',
+                        alertType: 'error',
+                        showAlert: true
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            },
+            
+            handleExport() {
+                if (this.state.headers.length === 0 || this.state.data.length === 0) {
+                    this.setState({
+                        alertMessage: 'No data to export',
+                        alertType: 'warning',
+                        showAlert: true
+                    });
+                    return;
+                }
+                
+                const csv = [
+                    this.state.headers.join(','),
+                    ...this.state.data.map(row =>
+                        row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+                    )
+                ].join('\n');
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = (this.state.fileName?.replace(/\.[^/.]+$/, '') || 'export') + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                this.setState({
+                    alertMessage: 'Data exported successfully',
+                    alertType: 'success',
+                    showAlert: true
+                });
+                setTimeout(() => this.setState({ showAlert: false }), 3000);
+            },
+            
+            render() {
+                const root = document.getElementById('root');
+                const { fileName, headers, data, isLoading, error, showAlert, alertMessage, alertType } = this.state;
+                
+                let alertHTML = '';
+                if (showAlert && alertMessage) {
+                    const typeStyles = {
+                        success: 'bg-green-50 border-green-200 text-green-800',
+                        error: 'bg-red-50 border-red-200 text-red-800',
+                        info: 'bg-blue-50 border-blue-200 text-blue-800',
+                        warning: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                    };
+                    
+                    alertHTML = `
+                        <div class="mb-6">
+                            <div class="border-l-4 p-4 rounded ${typeStyles[alertType]}" role="alert">
+                                <p class="text-sm font-medium">${alertMessage}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                let dataHTML = '';
+                if (isLoading) {
+                    dataHTML = `
+                        <div class="bg-white rounded-lg shadow p-8 mb-8">
+                            <div class="flex flex-col items-center justify-center py-12">
+                                <div class="relative w-12 h-12 mb-4">
+                                    <div class="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                    <div class="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                                <p class="text-sm text-gray-600">Processing your file...</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (error) {
+                    dataHTML = `
+                        <div class="bg-white rounded-lg shadow p-8 mb-8">
+                            <div class="border-l-4 border-red-200 p-4 rounded bg-red-50">
+                                <p class="text-sm text-red-800">${error}</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (headers.length > 0 && data.length > 0) {
+                    const tableRows = data.map(row => `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            ${row.map(cell => `<td class="px-4 py-3 text-sm text-gray-700">${String(cell ?? '')}</td>`).join('')}
+                        </tr>
+                    `).join('');
+                    
+                    dataHTML = `
+                        <div class="bg-white rounded-lg shadow p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-6">Data Preview</h3>
+                            <div class="overflow-x-auto mb-6">
+                                <table class="min-w-full border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 border-b-2 border-gray-300">
+                                            ${headers.map(h => `<th class="px-4 py-3 text-left text-sm font-semibold text-gray-900 whitespace-nowrap">${h}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="flex gap-4 pt-4 border-t border-gray-200">
+                                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" onclick="app.handleExport()">Export to CSV</button>
+                                <button class="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition" onclick="document.getElementById('fileInput').click()">Upload Another File</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    dataHTML = `
+                        <div class="bg-white rounded-lg shadow p-8 text-center py-12">
+                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <p class="text-gray-600 mb-6">No data loaded yet. Upload a file or load sample data to get started.</p>
+                        </div>
+                    `;
+                }
+                
+                root.innerHTML = `
+                    <div class="min-h-screen bg-gray-50 py-8 px-4">
+                        <div class="max-w-6xl mx-auto">
+                            <div class="mb-8">
+                                <h1 class="text-4xl font-bold text-gray-900 mb-2">Proevenverzamelingtool</h1>
+                                <p class="text-lg text-gray-600">Upload and view Excel data with ease</p>
+                            </div>
+                            
+                            ${alertHTML}
+                            
+                            <div class="bg-white rounded-lg shadow p-8 mb-8">
+                                <div class="space-y-6">
+                                    <div>
+                                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Upload Excel File</h2>
+                                        <p class="text-gray-600 mb-6">Select an Excel file (.xlsx, .xls) or CSV file to upload and view the data.</p>
+                                        
+                                        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="app.handleFileSelect(event)">
+                                        
+                                        <div class="flex gap-4">
+                                            <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                                            <button class="px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition text-lg font-medium" onclick="app.loadDummyData()">Load Sample Data</button>
+                                        </div>
+                                        
+                                        ${fileName ? `<p class="mt-4 text-sm text-gray-600"><span class="font-medium">Selected file:</span> ${fileName}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            ${dataHTML}
+                        </div>
+                    </div>
+                `;
+            }
+        };
+        
+        app.render();
+    </script>
+</body>
+</html>
