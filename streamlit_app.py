@@ -2,7 +2,7 @@ import streamlit as st
 from pathlib import Path
 import os
 
-# Page configuration
+# Force cache clear on every run
 st.set_page_config(
     page_title="Proevenverzamelingtool",
     page_icon="📊",
@@ -19,34 +19,44 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Path to React build
-react_build_path = Path(__file__).parent / "dist" / "index.html"
+# Get absolute path to dist folder
+current_dir = Path(__file__).parent
+dist_path = current_dir / "dist" / "index.html"
 
-if react_build_path.exists():
-    # Serve React app
-    with open(react_build_path, 'r', encoding='utf-8') as f:
-        html_content = f.read()
-    
-    st.components.v1.html(html_content, height=1200, scrolling=True)
+# Check if dist exists with absolute path resolution
+if dist_path.exists() and dist_path.is_file():
+    try:
+        # Serve React app directly
+        with open(dist_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        st.components.v1.html(html_content, height=1200, scrolling=True)
+    except Exception as e:
+        st.error(f"Error loading app: {str(e)}")
+        st.info(f"Debug - Looking for: {dist_path}")
+        st.info(f"Path exists: {dist_path.exists()}")
 else:
-    # Show setup message if React app not built
-    st.title("📊 Proevenverzamelingtool Setup")
-    st.warning("Build Required")
-    st.markdown("""
-    The React frontend hasn't been built yet. 
+    st.title("📊 Proevenverzamelingtool")
+    st.warning("**Build Required**")
+    st.markdown(f"""
+    The React frontend hasn't been built yet.
     
-    Please run the following commands in your terminal:
+    **Debug Info:**
+    - Looking for file at: `{dist_path}`
+    - File exists: {dist_path.exists()}
+    - Current directory: `{current_dir}`
+    
+    **To build the frontend locally:**
     
     ```bash
     npm install --legacy-peer-deps
     npm run build
     ```
     
-    Then refresh this page.
+    Or on Streamlit Cloud, the files will be auto-detected once built.
     
-    **Features:**
+    **Features Coming Soon:**
     - ✅ Upload Excel files (.xlsx, .xls, .csv)
-    - ✅ View data in an interactive table
+    - ✅ View data in interactive table
     - ✅ Export data to CSV
     - ✅ Load sample data for testing
     - ✅ Responsive design
