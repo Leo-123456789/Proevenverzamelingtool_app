@@ -19,38 +19,36 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Check if this is the React app or Streamlit interface
+# Path to React build
 react_build_path = Path(__file__).parent / "dist" / "index.html"
 
 if react_build_path.exists():
-    # Serve React app if built
-    st.markdown("# React app is ready to serve from built files")
+    # Serve React app
+    with open(react_build_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    
+    st.components.v1.html(html_content, height=1200, scrolling=True)
 else:
-    # Show welcome message and instructions
-    st.title("📊 Proevenverzamelingtool")
+    # Show setup message if React app not built
+    st.title("📊 Proevenverzamelingtool Setup")
+    st.warning("Build Required")
     st.markdown("""
-    Welcome to the Excel File Upload Tool!
-
-    ## Setup Instructions
-
-    To get started with the React frontend:
-
-    1. Install dependencies: `npm install`
-    2. Build the React app: `npm run build`
-    3. Restart this Streamlit app
-
-    The React frontend will then be served automatically.
-
-    ## Features
-
+    The React frontend hasn't been built yet. 
+    
+    Please run the following commands in your terminal:
+    
+    ```bash
+    npm install --legacy-peer-deps
+    npm run build
+    ```
+    
+    Then refresh this page.
+    
+    **Features:**
     - ✅ Upload Excel files (.xlsx, .xls, .csv)
     - ✅ View data in an interactive table
     - ✅ Export data to CSV
     - ✅ Load sample data for testing
     - ✅ Responsive design
-    - ✅ Accessibility support
-
-    ---
-
-    **Current Status**: Waiting for React frontend build...
+    - ✅ Full TypeScript support
     """)
