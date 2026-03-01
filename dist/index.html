@@ -181,10 +181,28 @@
                 this.setState({ template: value });
                 console.log('Template selected:', value);
             },
-
+            loadData() {
+                const { template, fileName, headers, data } = this.state;
+                if (!template) {
+                    this.setState({
+                        alertMessage: 'Please select a template first',
+                        alertType: 'warning',
+                        showAlert: true
+                    });
+                    return;
+                }
+                
+                this.setState({
+                    alertMessage: `Data loaded with template: ${template}`,
+                    alertType: 'success',
+                    showAlert: true
+                });
+                setTimeout(() => this.setState({ showAlert: false }), 3000);
+            },
+            
             render() {
                 const root = document.getElementById('root');
-                const { fileName, headers, data, isLoading, error, showAlert, alertMessage, alertType } = this.state;
+                const { fileName, headers, data, isLoading, error, showAlert, alertMessage, alertType, template } = this.state;
                 
                 let alertHTML = '';
                 if (showAlert && alertMessage) {
@@ -280,7 +298,7 @@
                                         <h2 class="text-xl font-semibold text-gray-900 mb-4">Upload Excel File</h2>
                                         <p class="text-gray-600 mb-6">Select an Excel file (.xlsx, .xlsm) to upload the data.</p>
                                         
-                                        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="app.handleFileSelect(event)">
+                                        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="window.app.handleFileSelect(event)">
                                         
                                         <div class="flex gap-4">
                                             <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium" onclick="document.getElementById('fileInput').click()">Choose File</button>
@@ -294,6 +312,7 @@
                                                 <option value="proevenverzamelingtool 4.2n of hoger">proevenverzamelingtool 4.2n of hoger</option>
                                                 <option value="STOWA uitwisselformat 4.2x">STOWA uitwisselformat 4.2x</option>
                                             </select>
+                                            ${template ? `<button class="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" onclick="window.app.loadData()">Load Data</button>` : ''}
                                         </div>` : ''}
                                     </div>
                                 </div>
@@ -303,9 +322,22 @@
                         </div>
                     </div>
                 `;
+
+                // After injecting HTML, ensure the select reflects current state
+                try {
+                    const sel = document.getElementById('templateSelect');
+                    if (sel && typeof template !== 'undefined') {
+                        sel.value = template || '';
+                    }
+                } catch (e) {
+                    console.warn('Failed to restore template select value', e);
+                }
             }
         };
-        
+
+        // Expose globally so inline handlers can access the app safely
+        window.app = app;
+
         app.render();
     </script>
 </body>
