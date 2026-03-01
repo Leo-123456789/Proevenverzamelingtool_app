@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setFileData, setError, setLoading, clearError } from '../../store/slices/dataSlice'
 import { showAlert } from '../../store/slices/uiSlice'
@@ -10,14 +10,13 @@ import { DataTable } from '../../components/DataTable/DataTable'
 import { LoadingSpinner } from '../../components/LoadingSpinner/LoadingSpinner'
 import { parseExcelFile, validateExcelFile } from '../../utils/excel'
 import { downloadExcel } from '../../utils/export'
-import { DUMMY_DATA } from '../../utils/dummyData'
 
-export const Dashboard = () => {
+export const Dashboard = (): JSX.Element => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dispatch = useDispatch()
   const { fileName, headers, data, isLoading, error } = useSelector((state: RootState) => state.data)
   const { showAlert: showAlertUI, alertMessage, alertType } = useSelector((state: RootState) => state.ui)
-
+  const [template, setTemplate] = useState<string>("")
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -49,17 +48,6 @@ export const Dashboard = () => {
     }
   }
 
-  const handleLoadDummyData = () => {
-    dispatch(
-      setFileData({
-        fileName: DUMMY_DATA.fileName,
-        headers: DUMMY_DATA.headers,
-        data: DUMMY_DATA.data,
-      })
-    )
-    dispatch(showAlert({ message: 'Sample data loaded successfully', type: 'success' }))
-  }
-
   const handleExport = () => {
     if (headers.length === 0 || data.length === 0) {
       dispatch(showAlert({ message: 'No data to export', type: 'warning' }))
@@ -76,7 +64,7 @@ export const Dashboard = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Proevenverzamelingtool</h1>
-          <p className="text-lg text-gray-600">Upload and view Excel data with ease</p>
+          <p className="text-lg text-gray-600">Voor het bereken van gedraineerde en ongedraineerde sterkteparameters op basis van de data in het STOWA uitwisselformat.</p>
         </div>
 
         {/* Alert */}
@@ -95,7 +83,7 @@ export const Dashboard = () => {
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Excel File</h2>
-              <p className="text-gray-600 mb-6">Select an Excel file (.xlsx, .xls) or CSV file to upload and view the data.</p>
+              <p className="text-gray-600 mb-6">Select an Excel file (.xlsx, .xlsm) to upload the data.</p>
 
               <input
                 ref={fileInputRef}
@@ -114,19 +102,30 @@ export const Dashboard = () => {
                   size="large"
                   ariaLabel="Click to select spreadsheet file"
                 />
-                <Button
-                  label="Load Sample Data"
-                  onClick={handleLoadDummyData}
-                  variant="secondary"
-                  size="large"
-                  ariaLabel="Load example data for demonstration"
-                />
               </div>
 
               {fileName && (
-                <p className="mt-4 text-sm text-gray-600">
-                  <span className="font-medium">Selected file:</span> {fileName}
-                </p>
+                <>
+                  <p className="mt-4 text-sm text-gray-600">
+                    <span className="font-medium">Selected file:</span> {fileName}
+                  </p>
+
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Template data proevenverzameling:
+                    </label>
+                    <select
+                      value={template}
+                      onChange={(e) => setTemplate(e.target.value)}
+                      className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm"
+                    >
+                      <option value="">Select template</option>
+                      <option>Proevenverzamelingtool 5.0</option>
+                      <option>proevenverzamelingtool 4.2n of hoger</option>
+                      <option>STOWA uitwisselformat 4.2x</option>
+                    </select>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -178,7 +177,7 @@ export const Dashboard = () => {
             <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            <p className="text-gray-600 mb-6">No data loaded yet. Upload a file or load sample data to get started.</p>
+            <p className="text-gray-600 mb-6">No data loaded yet. Upload a file to get started.</p>
           </Card>
         )}
       </div>

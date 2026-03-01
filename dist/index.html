@@ -39,33 +39,13 @@
                 error: null,
                 showAlert: false,
                 alertMessage: '',
-                alertType: 'info'
+                alertType: 'info',
+                template: ''
             },
             
             setState(newState) {
                 this.state = { ...this.state, ...newState };
                 this.render();
-            },
-            
-            loadDummyData() {
-                this.setState({
-                    fileName: 'sample_data.xlsx',
-                    headers: ['Voornaam', 'Achternaam', 'Leeftijd', 'E-mail', 'Bedrijf'],
-                    data: [
-                        ['Jan', 'Jansen', '28', 'jan.jansen@example.com', 'Tech Corp'],
-                        ['Maria', 'García', '34', 'maria.garcia@example.com', 'Design Studio'],
-                        ['Peter', 'Müller', '45', 'peter.muller@example.com', 'Finance Group'],
-                        ['Sarah', 'Johnson', '29', 'sarah.johnson@example.com', 'Marketing Plus'],
-                        ['Ahmed', 'Hassan', '31', 'ahmed.hassan@example.com', 'Data Systems'],
-                        ['Emma', 'Thompson', '26', 'emma.thompson@example.com', 'Creative Minds'],
-                        ['Rafael', 'Santos', '38', 'rafael.santos@example.com', 'Export Solutions'],
-                        ['Lisa', 'Anderson', '42', 'lisa.anderson@example.com', 'Global Trade'],
-                    ],
-                    alertMessage: 'Sample data loaded successfully',
-                    alertType: 'success',
-                    showAlert: true
-                });
-                setTimeout(() => this.setState({ showAlert: false }), 3000);
             },
             
             handleFileSelect(event) {
@@ -99,7 +79,8 @@
                     return;
                 }
                 
-                this.setState({ isLoading: true });
+                // Show template selector immediately by setting fileName
+                this.setState({ isLoading: true, fileName: file.name });
                 
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -196,6 +177,11 @@
                 setTimeout(() => this.setState({ showAlert: false }), 3000);
             },
             
+            setTemplate(value) {
+                this.setState({ template: value });
+                console.log('Template selected:', value);
+            },
+
             render() {
                 const root = document.getElementById('root');
                 const { fileName, headers, data, isLoading, error, showAlert, alertMessage, alertType } = this.state;
@@ -273,7 +259,7 @@
                             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
                             </svg>
-                            <p class="text-gray-600 mb-6">No data loaded yet. Upload a file or load sample data to get started.</p>
+                            <p class="text-gray-600 mb-6">No data loaded yet. Upload a file to get started.</p>
                         </div>
                     `;
                 }
@@ -283,7 +269,7 @@
                         <div class="max-w-6xl mx-auto">
                             <div class="mb-8">
                                 <h1 class="text-4xl font-bold text-gray-900 mb-2">Proevenverzamelingtool</h1>
-                                <p class="text-lg text-gray-600">Upload and view Excel data with ease</p>
+                                <p class="text-lg text-gray-600">Voor het bereken van gedraineerde en ongedraineerde sterkteparameters op basis van de data in het STOWA uitwisselformat.</p>
                             </div>
                             
                             ${alertHTML}
@@ -292,16 +278,23 @@
                                 <div class="space-y-6">
                                     <div>
                                         <h2 class="text-xl font-semibold text-gray-900 mb-4">Upload Excel File</h2>
-                                        <p class="text-gray-600 mb-6">Select an Excel file (.xlsx, .xls) or CSV file to upload and view the data.</p>
+                                        <p class="text-gray-600 mb-6">Select an Excel file (.xlsx, .xlsm) to upload the data.</p>
                                         
                                         <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="app.handleFileSelect(event)">
                                         
                                         <div class="flex gap-4">
                                             <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg font-medium" onclick="document.getElementById('fileInput').click()">Choose File</button>
-                                            <button class="px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition text-lg font-medium" onclick="app.loadDummyData()">Load Sample Data</button>
                                         </div>
                                         
-                                        ${fileName ? `<p class="mt-4 text-sm text-gray-600"><span class="font-medium">Selected file:</span> ${fileName}</p>` : ''}
+                                        ${fileName ? `<p class="mt-4 text-sm text-gray-600"><span class="font-medium">Selected file:</span> ${fileName}</p>
+                                        <div class="mt-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Template data proevenverzameling:</label>
+                                            <select id="templateSelect" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm" onchange="window.app.setTemplate(this.value)">
+                                                <option value="Proevenverzamelingtool 5.0">Proevenverzamelingtool 5.0</option>
+                                                <option value="proevenverzamelingtool 4.2n of hoger">proevenverzamelingtool 4.2n of hoger</option>
+                                                <option value="STOWA uitwisselformat 4.2x">STOWA uitwisselformat 4.2x</option>
+                                            </select>
+                                        </div>` : ''}
                                     </div>
                                 </div>
                             </div>
